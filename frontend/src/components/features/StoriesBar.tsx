@@ -27,11 +27,11 @@ function StoryItem({ promotion }: { promotion: Promotion }) {
             src={imgError || !promotion.image_url ? FALLBACK : promotion.image_url}
             alt={promotion.store}
             onError={() => setImgError(true)}
-            className="w-14 h-14 rounded-full object-cover"
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover"
           />
         </div>
       </div>
-      <span className="text-xs text-muted max-w-[64px] truncate text-center">
+      <span className="text-[10px] sm:text-xs text-muted max-w-[52px] sm:max-w-[64px] truncate text-center">
         {promotion.store}
       </span>
     </button>
@@ -44,8 +44,8 @@ export default function StoriesBar({ promotions, loading = false }: StoriesBarPr
       <div className="flex gap-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
-            <Skeleton width="w-16" height="h-16" rounded="full" />
-            <Skeleton width="w-12" height="h-2" />
+            <Skeleton width="w-12 sm:w-16" height="h-12 sm:h-16" rounded="full" />
+            <Skeleton width="w-10 sm:w-12" height="h-2" />
           </div>
         ))}
       </div>
@@ -56,7 +56,7 @@ export default function StoriesBar({ promotions, loading = false }: StoriesBarPr
 
   return (
     <div
-      className="flex gap-4 overflow-x-auto pb-1"
+      className="flex gap-3 sm:gap-4 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       aria-label="Stories de promoções"
     >

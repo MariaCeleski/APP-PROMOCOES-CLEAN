@@ -99,8 +99,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response, next: NextF
       latitude, longitude,
     } = req.body
 
-    if (!title || !price || !store || !category) {
-      res.status(400).json({ error: 'Campos obrigatórios: title, price, store, category', code: 'MISSING_FIELDS' })
+    if (!title || !store || !category) {
+      res.status(400).json({ error: 'Campos obrigatórios: title, store, category', code: 'MISSING_FIELDS' })
       return
     }
 
@@ -108,7 +108,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response, next: NextF
       .from('promotions')
       .insert({
         title,
-        price,
+        price: price || null,
         store,
         category,
         image_url: image_url || null,

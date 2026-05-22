@@ -1,10 +1,18 @@
 import api from './api'
+import type { Promotion } from '@/types/promotion'
 
 // ─── getFavorites ────────────────────────────────────────────────────────────
 
 export async function getFavorites(): Promise<string[]> {
   const { data } = await api.get<{ favoriteIds: string[] }>('/api/favorites')
   return data.favoriteIds
+}
+
+// ─── getFavoritePromotions ───────────────────────────────────────────────────
+
+export async function getFavoritePromotions(): Promise<Promotion[]> {
+  const { data } = await api.get<{ promotions: Promotion[] }>('/api/favorites/promotions')
+  return data.promotions
 }
 
 // ─── addFavorite ─────────────────────────────────────────────────────────────

@@ -11,6 +11,14 @@ import { createPromotion, getPromotion, updatePromotion } from '@/services/promo
 import { uploadImage } from '@/services/storage'
 import { categoriesForForm } from '@/constants/categories'
 import { formatCEP, cleanCEP } from '@/utils/formatters'
+import { searchByCEP, geocodeAddress, reverseGeocode, getCurrentLocation } from '@/services/geolocation'
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Capitaliza a primeira letra de cada palavra */
+function capitalize(value: string): string {
+  return value.replace(/(^|\s)\S/g, (char) => char.toUpperCase())
+}
 
 // ─── Toast simples ───────────────────────────────────────────────────────────
 
@@ -25,23 +33,6 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
       ✅ {message}
     </div>
   )
-}
-
-// ─── Reverse geocoding via Nominatim ─────────────────────────────────────────
-
-async function reverseGeocode(lat: number, lng: number) {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-    { headers: { 'Accept-Language': 'pt-BR' } },
-  )
-  const data = await res.json()
-  const addr = data.address || {}
-  return {
-    address: [addr.road, addr.house_number].filter(Boolean).join(', '),
-    city: addr.city || addr.town || addr.village || addr.municipality || '',
-    state: addr.state_code || addr.state?.slice(0, 2).toUpperCase() || '',
-    cep: (addr.postcode || '').replace(/\D/g, '').slice(0, 8),
-  }
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -60,6 +51,7 @@ export default function CreatePromotion() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [loadingPromotion, setLoadingPromotion] = useState(isEditMode)
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -86,6 +78,35 @@ export default function CreatePromotion() {
   const cepValue = watch('cep', '')
   const categoryValue = watch('category', '')
 
+  // ─── Buscar endereço quando CEP mudar ──────────────────────────────────────
+
+  useEffect(() => {
+    if (!cepValue || cepValue.length < 8) return
+
+    async function fetchAddressByCEP() {
+      try {
+        setGeoError(null)
+        const geo = await searchByCEP(cepValue || '')
+        setValue('address', geo.address || '')
+        setValue('city', geo.city || '')
+        setValue('state', geo.state || '')
+        
+        // Geocodificar para obter coordenadas
+        try {
+          const coords = await geocodeAddress(geo.address, geo.city, geo.state)
+          setCoordinates(coords)
+        } catch {
+          // Silencioso se não conseguir geocodificar
+        }
+      } catch (err) {
+        setGeoError(err instanceof Error ? err.message : 'Erro ao buscar CEP')
+      }
+    }
+
+    const timer = setTimeout(fetchAddressByCEP, 500) // Debounce de 500ms
+    return () => clearTimeout(timer)
+  }, [cepValue, setValue])
+
   // ─── Carregar dados no modo edição ────────────────────────────────────────
 
   useEffect(() => {
@@ -95,7 +116,7 @@ export default function CreatePromotion() {
         const promotion = await getPromotion(id!)
         reset({
           title: promotion.title,
-          price: promotion.price,
+          price: promotion.price ?? undefined,
           store: promotion.store,
           category: promotion.category,
           address: promotion.address || '',
@@ -103,6 +124,9 @@ export default function CreatePromotion() {
           state: promotion.state || '',
           cep: promotion.cep || '',
         })
+        if (promotion.latitude && promotion.longitude) {
+          setCoordinates({ latitude: promotion.latitude, longitude: promotion.longitude })
+        }
         if (promotion.image_url) {
           setExistingImageUrl(promotion.image_url)
           setImagePreview(promotion.image_url)
@@ -140,35 +164,22 @@ export default function CreatePromotion() {
   // ─── Geolocalização ───────────────────────────────────────────────────────
 
   async function handleUseLocation() {
-    if (!navigator.geolocation) {
-      setGeoError('Geolocalização não suportada neste navegador')
-      return
-    }
-
     setGeoLoading(true)
     setGeoError(null)
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords
-          const geo = await reverseGeocode(latitude, longitude)
-          setValue('address', geo.address)
-          setValue('city', geo.city)
-          setValue('state', geo.state.slice(0, 2))
-          setValue('cep', geo.cep)
-        } catch {
-          setGeoError('Não foi possível obter o endereço. Preencha manualmente.')
-        } finally {
-          setGeoLoading(false)
-        }
-      },
-      () => {
-        setGeoError('Permissão de localização negada. Preencha o endereço manualmente.')
-        setGeoLoading(false)
-      },
-      { timeout: 10000 },
-    )
+    try {
+      const coords = await getCurrentLocation()
+      setCoordinates(coords)
+      const geo = await reverseGeocode(coords.latitude, coords.longitude)
+      setValue('address', geo.address)
+      setValue('city', geo.city)
+      setValue('state', geo.state.slice(0, 2))
+      setValue('cep', geo.cep)
+    } catch (err) {
+      setGeoError(err instanceof Error ? err.message : 'Erro ao obter localização')
+    } finally {
+      setGeoLoading(false)
+    }
   }
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -193,7 +204,7 @@ export default function CreatePromotion() {
 
       const payload = {
         title: data.title,
-        price: Number(data.price),
+        price: data.price ? Number(data.price) : null,
         store: data.store,
         category: data.category,
         image_url: imageUrl,
@@ -201,6 +212,8 @@ export default function CreatePromotion() {
         city: data.city || undefined,
         state: data.state || undefined,
         cep: data.cep ? cleanCEP(data.cep) : undefined,
+        latitude: coordinates?.latitude || undefined,
+        longitude: coordinates?.longitude || undefined,
       }
 
       if (isEditMode && id) {
@@ -240,12 +253,12 @@ export default function CreatePromotion() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-muted hover:text-foreground transition-colors"
+          className="text-muted hover:text-foreground transition-colors text-xl sm:text-2xl flex-shrink-0"
           aria-label="Voltar"
         >
           ←
         </button>
-        <h1 className="text-foreground font-bold text-xl">
+        <h1 className="text-foreground font-bold text-lg sm:text-xl">
           {isEditMode ? 'Editar promoção' : 'Nova promoção'}
         </h1>
       </div>
@@ -264,17 +277,16 @@ export default function CreatePromotion() {
 
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="relative cursor-pointer rounded-xl overflow-hidden border-2 border-dashed border-border hover:border-primary transition-colors"
-            style={{ minHeight: '180px' }}
+            className="relative cursor-pointer rounded-xl overflow-hidden border-2 border-dashed border-border hover:border-primary transition-colors w-full aspect-[4/3] sm:aspect-[16/9] max-h-[250px] sm:max-h-[300px]"
           >
             {imagePreview ? (
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="w-full h-48 object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-muted gap-2">
+              <div className="flex flex-col items-center justify-center h-full text-muted gap-2">
                 <span className="text-4xl">📷</span>
                 <p className="text-sm">Clique para selecionar uma imagem</p>
                 <p className="text-xs">JPEG, PNG ou WebP — máx. 5MB</p>
@@ -322,7 +334,7 @@ export default function CreatePromotion() {
             placeholder="Ex: Pizza grande por R$ 29,90"
             error={errors.title?.message}
             {...register('title')}
-            onChange={(v) => setValue('title', v)}
+            onChange={(v) => setValue('title', capitalize(v))}
           />
 
           {/* Preço */}
@@ -354,7 +366,7 @@ export default function CreatePromotion() {
             placeholder="Ex: Pizzaria do João"
             error={errors.store?.message}
             {...register('store')}
-            onChange={(v) => setValue('store', v)}
+            onChange={(v) => setValue('store', capitalize(v))}
           />
 
           {/* Categoria */}
@@ -406,10 +418,10 @@ export default function CreatePromotion() {
             placeholder="Rua, número"
             error={errors.address?.message}
             {...register('address')}
-            onChange={(v) => setValue('address', v)}
+            onChange={(v) => setValue('address', capitalize(v))}
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="Cidade"
               placeholder="São Paulo"

@@ -28,7 +28,7 @@ COMMENT ON COLUMN profiles.cpf   IS 'Apenas dígitos, sem formatação';
 CREATE TABLE IF NOT EXISTS promotions (
   id         UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
   title      TEXT           NOT NULL,
-  price      NUMERIC(10,2)  NOT NULL CHECK (price > 0),
+  price      NUMERIC(10,2),
   store      TEXT           NOT NULL,
   category   TEXT           NOT NULL,
   image_url  TEXT,

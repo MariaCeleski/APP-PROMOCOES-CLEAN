@@ -26,7 +26,7 @@ export default function HeroBanner({ promotion, loading = false }: HeroBannerPro
 
   return (
     <div
-      className="relative w-full h-64 md:h-80 rounded-2xl overflow-hidden cursor-pointer group"
+      className="relative w-full h-48 sm:h-64 md:h-80 rounded-2xl overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/promotions/${promotion.id}`)}
       role="banner"
       aria-label={`Promoção em destaque: ${promotion.title}`}
@@ -43,18 +43,18 @@ export default function HeroBanner({ promotion, loading = false }: HeroBannerPro
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
       {/* Conteúdo sobreposto */}
-      <div className="absolute bottom-0 left-0 right-0 p-5">
+      <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5">
         <span className="text-xs text-accent font-semibold uppercase tracking-wider">
           🔥 Destaque
         </span>
-        <h2 className="text-foreground font-bold text-xl md:text-2xl mt-1 line-clamp-2 leading-tight">
+        <h2 className="text-foreground font-bold text-lg sm:text-xl md:text-2xl mt-1 line-clamp-2 leading-tight">
           {promotion.title}
         </h2>
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-2">
           <div>
             <p className="text-muted text-xs">{promotion.store}</p>
-            <p className="text-accent font-bold text-lg">
-              {formatCurrency(promotion.price)}
+            <p className="text-accent font-bold text-base sm:text-lg">
+              {promotion.price ? formatCurrency(promotion.price) : 'Consulte preços'}
             </p>
           </div>
           <button
@@ -62,7 +62,7 @@ export default function HeroBanner({ promotion, loading = false }: HeroBannerPro
               e.stopPropagation()
               navigate(`/promotions/${promotion.id}`)
             }}
-            className="bg-primary hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-primary hover:bg-blue-700 text-white text-xs sm:text-sm font-medium px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors w-full sm:w-auto"
           >
             Ver promoção
           </button>

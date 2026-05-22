@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Preencher template de PR",
+  "description": "Lembra de preencher o template de PR antes de criar uma pull request no GitHub",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "O usuário está prestes a criar uma Pull Request no GitHub. Antes de prosseguir:\n\n1. Leia o arquivo .github/pull_request_template.md para ver o template\n2. Analise o git diff entre a branch atual e main (git log --oneline main..HEAD e git diff main..HEAD --stat) para entender o que mudou\n3. Preencha todos os campos do template com base nas mudanças detectadas:\n   - Descrição clara do que foi feito\n   - Tipo de mudança (marque os checkboxes corretos)\n   - Como testar (passos concretos)\n   - Checklist (marque os itens aplicáveis)\n4. Apresente o template preenchido para o usuário revisar antes de criar a PR\n5. Após aprovação, crie a PR usando: gh pr create --title \"título\" --body \"corpo preenchido\" --base main"
+  }
+}

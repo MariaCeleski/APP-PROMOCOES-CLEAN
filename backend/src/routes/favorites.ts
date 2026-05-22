@@ -26,6 +26,40 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 })
 
+// ─── GET /api/favorites/promotions ───────────────────────────────────────────
+
+router.get('/promotions', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Buscar IDs dos favoritos do usuário
+    const { data: favs, error: favsError } = await supabaseAdmin
+      .from('favorites')
+      .select('promotion_id')
+      .eq('user_id', req.user!.id)
+
+    if (favsError) throw favsError
+
+    const ids = favs.map((f) => f.promotion_id)
+
+    if (ids.length === 0) {
+      res.json({ promotions: [] })
+      return
+    }
+
+    // Buscar promoções completas
+    const { data: promotions, error: promoError } = await supabaseAdmin
+      .from('promotions')
+      .select('*')
+      .in('id', ids)
+      .order('created_at', { ascending: false })
+
+    if (promoError) throw promoError
+
+    res.json({ promotions: promotions || [] })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── POST /api/favorites/:promotionId ────────────────────────────────────────
 
 router.post('/:promotionId', async (req: Request, res: Response, next: NextFunction) => {

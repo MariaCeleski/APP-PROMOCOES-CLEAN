@@ -1,7 +1,7 @@
 export interface Promotion {
   id: string
   title: string
-  price: number
+  price: number | null
   store: string
   category: string
   image_url: string | null
@@ -18,7 +18,7 @@ export interface Promotion {
 
 export interface CreatePromotionPayload {
   title: string
-  price: number
+  price?: number | null
   store: string
   category: string
   image_url?: string
