@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import HeroBanner from '@/components/features/HeroBanner'
@@ -14,8 +14,20 @@ export default function Home() {
   const { isEstablishment } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const recommendedRef = useRef<HTMLDivElement>(null)
 
   const { promotions, loading, error, refetch } = usePromotions()
+
+  // ─── Scroll dos recomendados ─────────────────────────────────────────────
+
+  function scrollRecommended(direction: 'left' | 'right') {
+    if (!recommendedRef.current) return
+    const scrollAmount = 300
+    recommendedRef.current.scrollBy({
+      left: direction === 'right' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth',
+    })
+  }
 
   // ─── Derivações ──────────────────────────────────────────────────────────
 
@@ -26,7 +38,7 @@ export default function Home() {
 
   const recommended = [...promotions]
     .filter((p) => p.image_url)
-    .sort((a, b) => b.price - a.price)
+    .sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
     .slice(0, 10)
 
   // ─── Delete ──────────────────────────────────────────────────────────────
@@ -47,12 +59,12 @@ export default function Home() {
   return (
     <PageWrapper>
       {/* Cabeçalho da página */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <h1 className="text-foreground font-bold text-xl">Promoções</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={refetch}
-            className="text-muted hover:text-foreground text-sm transition-colors flex items-center gap-1"
+            className="text-muted hover:text-foreground text-sm transition-colors flex items-center gap-1 flex-1 sm:flex-none justify-center"
             aria-label="Recarregar promoções"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -62,9 +74,9 @@ export default function Home() {
           </button>
           <button
             onClick={() => navigate('/map')}
-            className="text-sm bg-surface hover:bg-slate-600 text-foreground border border-border px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            className="text-sm bg-surface hover:bg-slate-600 text-foreground border border-border px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 flex-1 sm:flex-none justify-center"
           >
-            🗺️ Ver no mapa
+            🗺️ Mapa
           </button>
         </div>
       </div>
@@ -90,29 +102,49 @@ export default function Home() {
 
       {/* Recomendados — estilo Netflix */}
       {(loading || recommended.length > 0) && (
-        <section className="mb-6">
+        <section className="mb-6 relative group/row">
           <h2 className="text-foreground font-semibold text-sm mb-3">⭐ Recomendados</h2>
-          <div
-            className="flex gap-3 overflow-x-auto pb-2"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {loading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-44">
-                    <PromotionCard promotion={{} as never} loading />
-                  </div>
-                ))
-              : recommended.map((p) => (
-                  <div key={p.id} className="flex-shrink-0 w-44">
-                    <PromotionCard promotion={p} onDelete={handleDelete} />
-                  </div>
-                ))}
+          <div className="relative">
+            <div
+              ref={recommendedRef}
+              className="flex gap-2 sm:gap-3 overflow-x-auto pb-3 -mx-3 px-3 sm:-mx-4 sm:px-4 md:mx-0 md:px-0 scroll-smooth scrollbar-hide"
+            >
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex-shrink-0 w-36 sm:w-40 md:w-44">
+                      <PromotionCard promotion={{} as never} loading />
+                    </div>
+                  ))
+                : recommended.map((p) => (
+                    <div key={p.id} className="flex-shrink-0 w-36 sm:w-40 md:w-44">
+                      <PromotionCard promotion={p} onDelete={handleDelete} />
+                    </div>
+                  ))}
+            </div>
+
+            {/* Seta esquerda — visível apenas em desktop no hover */}
+            <button
+              onClick={() => scrollRecommended('left')}
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 items-center justify-center rounded-full bg-surface/90 border border-border shadow-lg text-foreground hover:bg-primary hover:text-white transition-all opacity-0 group-hover/row:opacity-100"
+              aria-label="Rolar para esquerda"
+            >
+              ‹
+            </button>
+
+            {/* Seta direita — visível apenas em desktop no hover */}
+            <button
+              onClick={() => scrollRecommended('right')}
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 items-center justify-center rounded-full bg-surface/90 border border-border shadow-lg text-foreground hover:bg-primary hover:text-white transition-all opacity-0 group-hover/row:opacity-100"
+              aria-label="Rolar para direita"
+            >
+              ›
+            </button>
           </div>
         </section>
       )}
 
       {/* Filtro de categorias */}
-      <section className="mb-4">
+      <section className="mb-4 mt-6">
         <CategoryFilter selected={selectedCategory} onSelect={setSelectedCategory} />
       </section>
 
@@ -126,19 +158,19 @@ export default function Home() {
         </h2>
 
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <PromotionCard key={i} promotion={{} as never} loading />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-muted">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="font-medium">Nenhuma promoção encontrada</p>
-            <p className="text-sm mt-1">Tente outra categoria</p>
+          <div className="text-center py-12 sm:py-16 text-muted">
+            <p className="text-3xl sm:text-4xl mb-3">🔍</p>
+            <p className="font-medium text-sm sm:text-base">Nenhuma promoção encontrada</p>
+            <p className="text-xs sm:text-sm mt-1">Tente outra categoria</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {filtered.map((p) => (
               <PromotionCard
                 key={p.id}
@@ -155,10 +187,10 @@ export default function Home() {
       {isEstablishment && (
         <button
           onClick={() => navigate('/promotions/new')}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-primary hover:bg-blue-700 text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-primary hover:bg-blue-700 text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 transition-all hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background font-medium text-xs sm:text-sm z-40"
           aria-label="Criar nova promoção"
         >
-          +
+          📝 <span className="hidden xs:inline">Cadastrar</span> <span className="hidden sm:inline">promoções</span>
         </button>
       )}
     </PageWrapper>

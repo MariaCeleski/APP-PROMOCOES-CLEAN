@@ -109,11 +109,11 @@ export default function PromotionDetail() {
       </button>
 
       {/* Galeria de imagens */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-800 mb-6">
+      <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-slate-800 mb-4 sm:mb-6">
         <img
           src={images[currentImage] || FALLBACK}
           alt={promotion.title}
-          className="w-full h-72 md:h-96 object-cover"
+          className="w-full h-48 sm:h-64 md:h-72 lg:h-96 object-cover"
           onError={(e) => { (e.target as HTMLImageElement).src = FALLBACK }}
         />
 
@@ -152,20 +152,20 @@ export default function PromotionDetail() {
       </div>
 
       {/* Conteúdo principal */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4">
         {/* Título e ações */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <span className="text-xs text-muted bg-surface px-2 py-0.5 rounded-full border border-border">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] sm:text-xs text-muted bg-surface px-1.5 sm:px-2 py-0.5 rounded-full border border-border">
               {promotion.category}
             </span>
-            <h1 className="text-foreground font-bold text-2xl mt-2 leading-tight">
+            <h1 className="text-foreground font-bold text-lg sm:text-xl md:text-2xl mt-1.5 sm:mt-2 leading-tight">
               {promotion.title}
             </h1>
-            <p className="text-accent font-bold text-3xl mt-1">
-              {formatCurrency(promotion.price)}
+            <p className="text-accent font-bold text-xl sm:text-2xl md:text-3xl mt-1">
+              {promotion.price ? formatCurrency(promotion.price) : 'Consulte preços'}
             </p>
-            <p className="text-muted text-sm mt-1">{promotion.store}</p>
+            <p className="text-muted text-xs sm:text-sm mt-1">{promotion.store}</p>
           </div>
 
           {/* Botão favoritar */}
@@ -197,7 +197,7 @@ export default function PromotionDetail() {
 
         {/* Mapa embutido */}
         {hasLocation && (
-          <div className="rounded-xl overflow-hidden border border-border h-52">
+          <div className="rounded-xl overflow-hidden border border-border h-40 sm:h-48 md:h-52">
             <MapContainer
               center={[promotion.latitude!, promotion.longitude!]}
               zoom={15}

@@ -49,17 +49,17 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-3 sm:px-4 py-6">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             🔥 <span className="text-primary">App</span>Promoções
           </h1>
-          <p className="text-muted text-sm mt-2">Acesse sua conta</p>
+          <p className="text-muted text-xs sm:text-sm mt-2">Acesse sua conta</p>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           {/* Erro de autenticação */}
           {authError && (
             <div className="bg-danger/10 border border-danger/30 text-danger rounded-lg p-3 text-sm mb-4" role="alert">

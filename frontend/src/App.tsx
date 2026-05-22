@@ -6,6 +6,7 @@ import Register from '@/pages/Register'
 import PromotionDetail from '@/pages/PromotionDetail'
 import CreatePromotion from '@/pages/CreatePromotion'
 import Map from '@/pages/Map'
+import Favorites from '@/pages/Favorites'
 
 // ─── Rota exclusiva para establishment ──────────────────────────────────────
 
@@ -27,6 +28,7 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/promotions/:id" element={<PromotionDetail />} />
       <Route path="/map" element={<Map />} />
+      <Route path="/favorites" element={<Favorites />} />
       {/* CreatePromotion */}
       <Route
         path="/promotions/new"

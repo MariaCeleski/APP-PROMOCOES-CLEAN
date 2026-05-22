@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import PageWrapper from '@/components/layout/PageWrapper'
 import { getPromotionsWithLocation } from '@/services/promotions'
 import { formatCurrency } from '@/utils/formatters'
 import type { Promotion } from '@/types/promotion'
@@ -20,18 +19,16 @@ export default function Map() {
   const navigate = useNavigate()
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
-
-  // ─── Carregar promoções com localização ──────────────────────────────────
 
   useEffect(() => {
     async function load() {
       try {
         const data = await getPromotionsWithLocation()
-        setPromotions(data)
-      } catch {
-        setError('Erro ao carregar promoções no mapa')
+        const validPromotions = data.filter(p => p.latitude && p.longitude)
+        setPromotions(validPromotions)
+      } catch (err) {
+        console.error('Erro ao carregar promoções:', err)
+        setPromotions([])
       } finally {
         setLoading(false)
       }
@@ -39,62 +36,43 @@ export default function Map() {
     load()
   }, [])
 
-  // ─── Localização do usuário ──────────────────────────────────────────────
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-        () => {}, // silencioso se negado
-      )
-    }
-  }, [])
-
-  // ─── Centro do mapa ──────────────────────────────────────────────────────
-
-  const center: [number, number] = (() => {
-    if (userLocation) return userLocation
-    if (promotions.length > 0) {
-      const avgLat = promotions.reduce((s, p) => s + p.latitude!, 0) / promotions.length
-      const avgLng = promotions.reduce((s, p) => s + p.longitude!, 0) / promotions.length
-      return [avgLat, avgLng]
-    }
-    return [-15.7801, -47.9292] // Brasília como fallback
-  })()
+  // Centro padrão (Brasília) ou primeira promoção
+  const center: [number, number] = promotions.length > 0
+    ? [promotions[0].latitude!, promotions[0].longitude!]
+    : [-15.7801, -47.9292]
 
   return (
-    <PageWrapper className="p-0">
-      <div className="px-4 pt-6 pb-3 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header do mapa */}
+      <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between border-b border-border">
         <div>
-          <h1 className="text-foreground font-bold text-xl">Mapa de Promoções</h1>
+          <h1 className="text-foreground font-bold text-base sm:text-lg">Mapa de Promoções</h1>
           {!loading && (
-            <p className="text-muted text-sm mt-0.5">
-              {promotions.length} promoção{promotions.length !== 1 ? 'ões' : ''} com localização
+            <p className="text-muted text-[10px] sm:text-xs mt-0.5">
+              {promotions.length} {promotions.length === 1 ? 'promoção' : 'promoções'}
             </p>
           )}
         </div>
         <button
           onClick={() => navigate('/')}
-          className="text-sm text-muted hover:text-foreground transition-colors"
+          className="text-xs sm:text-sm text-muted hover:text-foreground transition-colors"
         >
           ← Voltar
         </button>
       </div>
 
-      {error && (
-        <div className="mx-4 mb-3 bg-danger/10 border border-danger/30 text-danger rounded-lg p-3 text-sm">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="mx-4 h-[calc(100vh-200px)] rounded-xl bg-slate-800 animate-pulse" />
-      ) : (
-        <div className="mx-4 rounded-xl overflow-hidden border border-border" style={{ height: 'calc(100vh - 200px)' }}>
+      {/* Mapa — ocupa todo o espaço restante */}
+      <div className="flex-1 relative">
+        {loading ? (
+          <div className="absolute inset-0 bg-slate-800 animate-pulse flex items-center justify-center">
+            <span className="text-muted text-sm">Carregando mapa...</span>
+          </div>
+        ) : (
           <MapContainer
             center={center}
-            zoom={userLocation ? 13 : 11}
+            zoom={promotions.length > 0 ? 13 : 4}
             style={{ height: '100%', width: '100%' }}
+            scrollWheelZoom={true}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -104,13 +82,14 @@ export default function Map() {
             {promotions.map((p) => (
               <Marker key={p.id} position={[p.latitude!, p.longitude!]}>
                 <Popup>
-                  <div className="min-w-[160px]">
-                    <p className="font-semibold text-sm">{p.title}</p>
-                    <p className="text-orange-500 font-bold">{formatCurrency(p.price)}</p>
-                    <p className="text-gray-500 text-xs">{p.store}</p>
+                  <div className="min-w-[180px]">
+                    <p className="font-semibold text-sm text-gray-900">{p.title}</p>
+                    <p className="text-orange-600 font-bold">{p.price ? formatCurrency(p.price) : 'Consulte'}</p>
+                    <p className="text-gray-600 text-xs">{p.store}</p>
+                    <p className="text-gray-500 text-xs">{p.category}</p>
                     <button
                       onClick={() => navigate(`/promotions/${p.id}`)}
-                      className="mt-2 text-xs text-blue-600 hover:underline"
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
                     >
                       Ver detalhes →
                     </button>
@@ -119,8 +98,8 @@ export default function Map() {
               </Marker>
             ))}
           </MapContainer>
-        </div>
-      )}
-    </PageWrapper>
+        )}
+      </div>
+    </div>
   )
 }

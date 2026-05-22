@@ -1,0 +1,448 @@
+openapi: 3.0.3
+info:
+  title: App Promoções API
+  version: 1.0.0
+  description: API REST para o marketplace de promoções locais
+
+servers:
+  - url: http://localhost:3333
+    description: Desenvolvimento
+  - url: https://api.apppromocoes.com
+    description: Produção
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Cadastrar novo usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, cpf, password, role]
+              properties:
+                name:
+                  type: string
+                  example: João Silva
+                email:
+                  type: string
+                  format: email
+                  example: joao@email.com
+                cpf:
+                  type: string
+                  pattern: '^\d{11}$'
+                  example: "12345678901"
+                password:
+                  type: string
+                  minLength: 6
+                  example: senha123
+                role:
+                  type: string
+                  enum: [user, establishment]
+                  example: establishment
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Campos inválidos
+        '409':
+          description: Email ou CPF já cadastrado
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login com email ou CPF
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier:
+                  type: string
+                  description: Email ou CPF
+                  example: joao@email.com
+                password:
+                  type: string
+                  example: senha123
+      responses:
+        '200':
+          description: Login bem-sucedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciais inválidas
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Encerrar sessão
+      responses:
+        '200':
+          description: Logout realizado
+
+  /api/promotions:
+    get:
+      tags: [Promotions]
+      summary: Listar promoções
+      security: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filtrar por categoria
+        - name: city
+          in: query
+          schema:
+            type: string
+          description: Filtrar por cidade
+      responses:
+        '200':
+          description: Lista de promoções
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promotions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Promotion'
+    post:
+      tags: [Promotions]
+      summary: Criar promoção (establishment only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromotion'
+      responses:
+        '201':
+          description: Promoção criada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promotion:
+                    $ref: '#/components/schemas/Promotion'
+        '400':
+          description: Campos obrigatórios ausentes
+        '401':
+          description: Não autenticado
+        '403':
+          description: Apenas establishments podem criar
+
+  /api/promotions/map:
+    get:
+      tags: [Promotions]
+      summary: Promoções com localização (para mapa)
+      security: []
+      responses:
+        '200':
+          description: Promoções com coordenadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promotions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Promotion'
+
+  /api/promotions/{id}:
+    get:
+      tags: [Promotions]
+      summary: Buscar promoção por ID
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Promoção encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  promotion:
+                    $ref: '#/components/schemas/Promotion'
+        '404':
+          description: Promoção não encontrada
+    put:
+      tags: [Promotions]
+      summary: Atualizar promoção (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromotion'
+      responses:
+        '200':
+          description: Promoção atualizada
+        '401':
+          description: Não autenticado
+        '403':
+          description: Sem permissão (não é dono)
+        '404':
+          description: Promoção não encontrada
+    delete:
+      tags: [Promotions]
+      summary: Deletar promoção (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Promoção deletada
+        '401':
+          description: Não autenticado
+        '403':
+          description: Sem permissão
+        '404':
+          description: Promoção não encontrada
+
+  /api/favorites:
+    get:
+      tags: [Favorites]
+      summary: Listar favoritos do usuário
+      responses:
+        '200':
+          description: Lista de promoções favoritas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Promotion'
+
+  /api/favorites/{promotionId}:
+    post:
+      tags: [Favorites]
+      summary: Adicionar aos favoritos
+      parameters:
+        - name: promotionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Adicionado aos favoritos
+        '401':
+          description: Não autenticado
+        '409':
+          description: Já favoritado
+    delete:
+      tags: [Favorites]
+      summary: Remover dos favoritos
+      parameters:
+        - name: promotionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Removido dos favoritos
+        '401':
+          description: Não autenticado
+        '404':
+          description: Favorito não encontrado
+
+  /api/upload:
+    post:
+      tags: [Upload]
+      summary: Upload de imagem
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Imagem enviada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        '400':
+          description: Formato inválido (aceita JPEG, PNG, WebP)
+        '401':
+          description: Não autenticado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        price:
+          type: number
+          format: float
+        store:
+          type: string
+        category:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        image_urls:
+          type: array
+          items:
+            type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        cep:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        user_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    CreatePromotion:
+      type: object
+      required: [title, price, store, category]
+      properties:
+        title:
+          type: string
+        price:
+          type: number
+          minimum: 0.01
+        store:
+          type: string
+        category:
+          type: string
+          enum:
+            - Restaurantes
+            - Supermercados
+            - Lojas
+            - Petshop
+            - Farmácias
+            - Serviços
+            - Turismo
+            - Lazer
+            - Outros
+        image_url:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          maxLength: 2
+        cep:
+          type: string
+          pattern: '^\d{8}$'
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+        profile:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            cpf:
+              type: string
+            role:
+              type: string
+              enum: [user, establishment]
+        token:
+          type: string

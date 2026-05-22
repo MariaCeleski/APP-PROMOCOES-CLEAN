@@ -87,22 +87,34 @@ export const registerSchema = z
 export const promotionSchema = z.object({
   title: z.string().min(3, 'O título deve ter no mínimo 3 caracteres'),
   price: z
-    .number({ invalid_type_error: 'Informe um preço válido' })
-    .positive('O preço deve ser maior que zero'),
+    .union([
+      z.number().min(0),
+      z.nan(),
+      z.literal(0),
+    ])
+    .optional()
+    .transform((val) => (val && !isNaN(val) && val > 0 ? val : undefined)),
   store: z.string().min(2, 'Informe o nome do estabelecimento'),
   category: z.enum(categoryNames, {
     errorMap: () => ({ message: 'Selecione uma categoria válida' }),
   }),
-  address: z.string().min(5, 'Informe o endereço').optional().or(z.literal('')),
-  city: z.string().min(2, 'Informe a cidade').optional().or(z.literal('')),
+  address: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
   state: z
     .string()
-    .length(2, 'O estado deve ter 2 letras')
+    .max(2, 'O estado deve ter no máximo 2 letras')
     .optional()
     .or(z.literal('')),
   cep: z
     .string()
-    .regex(/^\d{8}$/, 'CEP deve ter 8 dígitos numéricos')
+    .refine(
+      (val) => {
+        if (!val) return true // CEP é opcional
+        const clean = val.replace(/\D/g, '')
+        return clean.length === 8
+      },
+      { message: 'CEP deve ter 8 dígitos' }
+    )
     .optional()
     .or(z.literal('')),
 })

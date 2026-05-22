@@ -1,98 +1,104 @@
-# App Promoções
+# 🔥 App Promoções
 
 Marketplace de promoções locais que conecta estabelecimentos comerciais a consumidores.
 
 ## Stack
 
-### Frontend
-- React 18 + Vite + TypeScript
-- React Router DOM v6
-- Tailwind CSS
-- React Hook Form + Zod
-- Axios
-- React Leaflet (mapa)
-
-### Backend
-- Node.js + Express + TypeScript
-- Supabase (Auth, PostgreSQL, Storage)
-- Multer (upload de imagens)
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React + Vite + TypeScript + Tailwind CSS |
+| Backend | Node.js + Express + TypeScript |
+| Database | Supabase (PostgreSQL + Auth + Storage) |
+| Mapa | react-leaflet + OpenStreetMap |
 
 ## Funcionalidades
 
-- **Autenticação** — login com email ou CPF, cadastro com dois papéis: `user` (consumidor) e `establishment` (lojista)
-- **Home** — hero banner, stories horizontais, seção "Recomendado" estilo Netflix, filtro por categoria, lista de promoções
-- **Promoções** — cards com imagem/título/preço/loja, tela de detalhe, criação/edição/exclusão (exclusivo para lojistas), upload de múltiplas imagens, geolocalização automática
-- **Mapa** — visualização de promoções com coordenadas via Leaflet.js
-- **Favoritos** — adicionar/remover promoções favoritas por usuário
+- Cadastro e login (email ou CPF)
+- Publicação de promoções com imagens
+- Geolocalização automática (GPS ou CEP)
+- Mapa interativo com marcadores
+- Favoritos
+- Filtro por categoria
+- Design responsivo (mobile-first)
 
-## Banco de Dados (Supabase)
+## Início Rápido
 
-| Tabela | Campos principais |
-|--------|-------------------|
-| `profiles` | id, name, email, cpf, role |
-| `promotions` | id, title, price, store, category, image_url, image_urls, address, city, state, cep, latitude, longitude, user_id |
-| `favorites` | user_id, promotion_id |
+```bash
+# Clonar
+git clone https://github.com/seu-usuario/app-promocoes.git
+cd app-promocoes
 
-## Estrutura do Projeto
+# Configurar ambiente
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+# Edite os .env com suas credenciais Supabase
 
+# Instalar
+cd backend && npm install
+cd ../frontend && npm install
+
+# Rodar
+# Terminal 1:
+cd backend && npm run dev
+
+# Terminal 2:
+cd frontend && npm run dev
 ```
-Promo/
-├── frontend/          # React + Vite
-│   └── src/
-│       ├── components/
-│       │   ├── ui/        # Button, Input, Card, Skeleton
-│       │   ├── layout/    # Header, Footer, PageWrapper
-│       │   └── features/  # PromotionCard, StoriesBar, CategoryFilter, HeroBanner
-│       ├── pages/         # Home, Login, Register, PromotionDetail, CreatePromotion, Map
-│       ├── services/      # api, auth, promotions, favorites, storage
-│       ├── contexts/      # AuthContext
-│       ├── hooks/         # useAuth, usePromotions, useFavorites
-│       ├── types/         # auth, promotion
-│       ├── utils/         # validators, formatters
-│       └── constants/     # categories
-└── backend/           # Node + Express
-    └── src/
-        ├── routes/        # auth, promotions, favorites, upload
-        ├── middlewares/   # authMiddleware, errorHandler
-        ├── services/      # supabase
-        └── types/
-```
+
+Acesse: http://localhost:5173
 
 ## Variáveis de Ambiente
 
-### Frontend (`.env`)
-```env
-VITE_API_URL=http://localhost:3333
+### Backend (`backend/.env`)
 ```
-
-### Backend (`.env`)
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 PORT=3333
 ```
 
-## Como Rodar
-
-### Backend
-```bash
-cd backend
-npm install
-npm run dev
+### Frontend (`frontend/.env`)
 ```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_URL=http://localhost:3333
+```
+
+## Estrutura
+
+```
+app-promocoes/
+├── frontend/          # React + Vite
+├── backend/           # Node.js + Express
+├── database/          # SQL schemas
+├── docs/              # Documentação
+└── .github/workflows/ # CI/CD
+```
+
+## Documentação
+
+- [Instalação detalhada](docs/INSTALLATION.md)
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Diagramas de API](docs/diagrams/api-flow.md)
+- [Checklist de revisão](docs/CHECKLIST.md)
+- [OpenAPI Spec](backend/docs/openapi.yaml)
+
+## Scripts
 
 ### Frontend
 ```bash
-cd frontend
-npm install
-npm run dev
+npm run dev      # Servidor de desenvolvimento
+npm run build    # Build de produção
+npm run lint     # Verificar código
 ```
 
-## Categorias
+### Backend
+```bash
+npm run dev      # Servidor de desenvolvimento
+npm run build    # Compilar TypeScript
+npm run lint     # Verificar código
+```
 
-20 categorias disponíveis: Todos 🔥, Pizza 🍕, Hambúrguer 🍔, Carnes 🥩, Frango 🍗, Frutos do Mar 🦐, Sushi 🍣, Hortifruti 🥦, Padaria 🥖, Supermercado 🛒, Farmácia 💊, Restaurante 🍽️, Lanchonete 🥪, Sorveteria 🍦, Cafeteria ☕, Bebidas 🍺, Eletrônicos 📱, Loja 🛍️, Conveniência 🏪, Outros 📦
+## Licença
 
-## Prompts de Reconstrução
-
-Consulte o arquivo [Prompts.md](./Prompts.md) para os 9 prompts que cobrem o projeto do zero ao completo.
+MIT
