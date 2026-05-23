@@ -12,6 +12,7 @@ export interface Promotion {
   cep: string | null
   latitude: number | null
   longitude: number | null
+  expires_at: string | null
   user_id: string
   created_at: string
 }
@@ -29,6 +30,7 @@ export interface CreatePromotionPayload {
   cep?: string
   latitude?: number
   longitude?: number
+  expires_at?: string | null
 }
 
 export type UpdatePromotionPayload = Partial<CreatePromotionPayload>

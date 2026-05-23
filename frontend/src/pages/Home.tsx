@@ -14,6 +14,7 @@ export default function Home() {
   const { isEstablishment } = useAuth()
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const recommendedRef = useRef<HTMLDivElement>(null)
 
   const { promotions, loading, error, refetch } = usePromotions()
@@ -35,6 +36,13 @@ export default function Home() {
     selectedCategory === 'Todos'
       ? promotions
       : promotions.filter((p) => p.category === selectedCategory)
+
+  const searchFiltered = searchQuery.trim()
+    ? filtered.filter((p) =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.store.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filtered
 
   const recommended = [...promotions]
     .filter((p) => p.image_url)
@@ -88,6 +96,49 @@ export default function Home() {
           <button onClick={refetch} className="ml-2 underline">Tentar novamente</button>
         </div>
       )}
+
+      {/* Busca */}
+      <div className="relative mb-4">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm z-10">🔍</span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar promoção ou loja..."
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-foreground bg-surface border border-border placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background transition-colors"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground text-sm z-10"
+            aria-label="Limpar busca"
+          >
+            ✕
+          </button>
+        )}
+
+        {/* Sugestões de busca */}
+        {searchQuery.trim().length >= 2 && searchFiltered.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+            {searchFiltered.slice(0, 5).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setSearchQuery('')
+                  navigate(`/promotions/${p.id}`)
+                }}
+                className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-background/50 transition-colors text-left border-b border-border/50 last:border-b-0"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground text-sm font-medium truncate">{p.title}</p>
+                  <p className="text-muted text-xs truncate">{p.store}</p>
+                </div>
+                <span className="text-muted text-lg ml-2 flex-shrink-0">→</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Hero Banner */}
       <section className="mb-6">
@@ -153,7 +204,7 @@ export default function Home() {
         <h2 className="text-foreground font-semibold text-sm mb-3">
           {selectedCategory === 'Todos' ? 'Todas as promoções' : selectedCategory}
           {!loading && (
-            <span className="text-muted font-normal ml-2">({filtered.length})</span>
+            <span className="text-muted font-normal ml-2">({searchFiltered.length})</span>
           )}
         </h2>
 
@@ -163,15 +214,15 @@ export default function Home() {
               <PromotionCard key={i} promotion={{} as never} loading />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : searchFiltered.length === 0 ? (
           <div className="text-center py-12 sm:py-16 text-muted">
             <p className="text-3xl sm:text-4xl mb-3">🔍</p>
             <p className="font-medium text-sm sm:text-base">Nenhuma promoção encontrada</p>
-            <p className="text-xs sm:text-sm mt-1">Tente outra categoria</p>
+            <p className="text-xs sm:text-sm mt-1">Tente outra categoria ou busca</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-            {filtered.map((p) => (
+            {searchFiltered.map((p) => (
               <PromotionCard
                 key={p.id}
                 promotion={p}

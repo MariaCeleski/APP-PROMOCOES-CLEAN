@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS promotions (
   cep        TEXT,
   latitude   DOUBLE PRECISION,
   longitude  DOUBLE PRECISION,
+  expires_at TIMESTAMPTZ,
   user_id    UUID           NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );

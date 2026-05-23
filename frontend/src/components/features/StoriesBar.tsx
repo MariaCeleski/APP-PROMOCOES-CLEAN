@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import type { Promotion } from '@/types/promotion'
 import Skeleton from '@/components/ui/Skeleton'
+import { capitalize } from '@/utils/formatters'
 
 const FALLBACK = 'https://placehold.co/80x80/1E293B/94A3B8?text=?'
 
@@ -32,7 +33,7 @@ function StoryItem({ promotion }: { promotion: Promotion }) {
         </div>
       </div>
       <span className="text-[10px] sm:text-xs text-muted max-w-[52px] sm:max-w-[64px] truncate text-center">
-        {promotion.store}
+        {capitalize(promotion.store)}
       </span>
     </button>
   )

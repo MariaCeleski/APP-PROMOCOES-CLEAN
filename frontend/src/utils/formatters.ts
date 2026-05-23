@@ -68,3 +68,10 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength).trimEnd() + '…'
 }
+
+/**
+ * Capitaliza a primeira letra de cada palavra
+ */
+export function capitalize(text: string): string {
+  return text.replace(/(^|\s)\S/g, (char) => char.toUpperCase())
+}
