@@ -1,5 +1,5 @@
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
 import type { Promotion } from '@/types/promotion'
 import Skeleton from '@/components/ui/Skeleton'
 import { capitalize } from '@/utils/formatters'
@@ -11,35 +11,84 @@ interface StoriesBarProps {
   loading?: boolean
 }
 
-function StoryItem({ promotion }: { promotion: Promotion }) {
+interface StoreGroup {
+  userId: string
+  store: string
+  imageUrl: string | null
+  count: number
+  latestPromotion: Promotion
+}
+
+function StoryItem({ group }: { group: StoreGroup }) {
   const navigate = useNavigate()
   const [imgError, setImgError] = useState(false)
 
   return (
     <button
-      onClick={() => navigate(`/promotions/${promotion.id}`)}
+      onClick={() => navigate(`/store/${group.userId}`)}
       className="flex flex-col items-center gap-1.5 flex-shrink-0 group focus:outline-none"
-      aria-label={`Ver promoção de ${promotion.store}`}
+      aria-label={`Ver promoções de ${group.store}`}
     >
-      {/* Anel colorido */}
-      <div className="p-0.5 rounded-full bg-gradient-to-tr from-accent via-primary to-blue-400 group-hover:from-orange-400 group-hover:to-blue-500 transition-all duration-200">
-        <div className="p-0.5 rounded-full bg-background">
+      {/* Anel colorido — mais grosso se tem múltiplas promoções */}
+      <div className={[
+        'p-0.5 rounded-full transition-all duration-200',
+        group.count > 1
+          ? 'bg-gradient-to-tr from-accent via-primary to-blue-400 group-hover:from-orange-400 group-hover:to-blue-500'
+          : 'bg-gradient-to-tr from-border to-muted/50 group-hover:from-primary group-hover:to-blue-400',
+      ].join(' ')}>
+        <div className="p-0.5 rounded-full bg-background relative">
           <img
-            src={imgError || !promotion.image_url ? FALLBACK : promotion.image_url}
-            alt={promotion.store}
+            src={imgError || !group.imageUrl ? FALLBACK : group.imageUrl}
+            alt={group.store}
             onError={() => setImgError(true)}
             className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover"
           />
+          {/* Badge de quantidade */}
+          {group.count > 1 && (
+            <span className="absolute -top-0.5 -right-0.5 bg-accent text-white text-[8px] sm:text-[9px] font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-sm">
+              {group.count}
+            </span>
+          )}
         </div>
       </div>
       <span className="text-[10px] sm:text-xs text-muted max-w-[52px] sm:max-w-[64px] truncate text-center">
-        {capitalize(promotion.store)}
+        {capitalize(group.store)}
       </span>
     </button>
   )
 }
 
 export default function StoriesBar({ promotions, loading = false }: StoriesBarProps) {
+  // Agrupar promoções por estabelecimento (user_id)
+  const storeGroups = useMemo(() => {
+    const map = new Map<string, StoreGroup>()
+
+    for (const p of promotions) {
+      const existing = map.get(p.user_id)
+      if (existing) {
+        existing.count++
+        // Manter a imagem mais recente
+        if (new Date(p.created_at) > new Date(existing.latestPromotion.created_at)) {
+          existing.imageUrl = p.image_url
+          existing.latestPromotion = p
+        }
+      } else {
+        map.set(p.user_id, {
+          userId: p.user_id,
+          store: p.store,
+          imageUrl: p.image_url,
+          count: 1,
+          latestPromotion: p,
+        })
+      }
+    }
+
+    // Ordenar por mais recente primeiro
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.latestPromotion.created_at).getTime() - new Date(a.latestPromotion.created_at).getTime()
+    )
+  }, [promotions])
+
   if (loading) {
     return (
       <div className="flex gap-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
@@ -53,16 +102,16 @@ export default function StoriesBar({ promotions, loading = false }: StoriesBarPr
     )
   }
 
-  if (!promotions.length) return null
+  if (!storeGroups.length) return null
 
   return (
     <div
-      className="flex gap-3 sm:gap-4 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0"
+      className="flex gap-3 sm:gap-4 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 scrollbar-hide"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      aria-label="Stories de promoções"
+      aria-label="Stories de estabelecimentos"
     >
-      {promotions.map((promotion) => (
-        <StoryItem key={promotion.id} promotion={promotion} />
+      {storeGroups.map((group) => (
+        <StoryItem key={group.userId} group={group} />
       ))}
     </div>
   )

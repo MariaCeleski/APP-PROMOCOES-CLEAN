@@ -40,7 +40,9 @@ export default function Home() {
   const searchFiltered = searchQuery.trim()
     ? filtered.filter((p) =>
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.store.toLowerCase().includes(searchQuery.toLowerCase())
+        p.store.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.city && p.city.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.address && p.address.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : filtered
 
@@ -104,7 +106,7 @@ export default function Home() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar promoção ou loja..."
+          placeholder="Buscar promoção, loja ou cidade..."
           className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm text-foreground bg-surface border border-border placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background transition-colors"
         />
         {searchQuery && (
@@ -131,7 +133,9 @@ export default function Home() {
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-foreground text-sm font-medium truncate">{p.title}</p>
-                  <p className="text-muted text-xs truncate">{p.store}</p>
+                  <p className="text-muted text-xs truncate">
+                    {p.store}{p.city ? ` · ${p.city}` : ''}{p.state ? `, ${p.state}` : ''}
+                  </p>
                 </div>
                 <span className="text-muted text-lg ml-2 flex-shrink-0">→</span>
               </button>

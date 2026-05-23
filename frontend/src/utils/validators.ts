@@ -117,7 +117,7 @@ export const promotionSchema = z.object({
     )
     .optional()
     .or(z.literal('')),
-  expiresAt: z.string().optional().or(z.literal('')),
+  expiresAt: z.string().min(1, 'Informe a data de validade da promoção'),
 })
 
 // ─── Inferred Types ──────────────────────────────────────────────────────────

@@ -179,4 +179,31 @@ router.get('/me', authMiddleware, async (req: Request, res: Response, next: Next
   }
 })
 
+// ─── POST /api/auth/reset-password ───────────────────────────────────────────
+
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      res.status(400).json({ error: 'Informe o email', code: 'MISSING_FIELDS' })
+      return
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+    })
+
+    if (error) {
+      // Não revelar se o email existe ou não (segurança)
+      console.error('Reset password error:', error.message)
+    }
+
+    // Sempre retornar sucesso (não revelar se email existe)
+    res.json({ message: 'Se o email estiver cadastrado, você receberá um link de recuperação' })
+  } catch (err) {
+    next(err)
+  }
+})
+
 export default router

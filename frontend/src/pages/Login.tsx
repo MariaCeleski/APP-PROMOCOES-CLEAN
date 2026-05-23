@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { loginSchema, type LoginFormData } from '@/utils/validators'
-import { signIn } from '@/services/auth'
+import { signIn, resetPassword } from '@/services/auth'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCPF } from '@/utils/formatters'
 
@@ -14,6 +14,10 @@ export default function Login() {
   const navigate = useNavigate()
   const { setAuthData } = useAuth()
   const [authError, setAuthError] = useState<string | null>(null)
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
+  const [resetError, setResetError] = useState<string | null>(null)
 
   const {
     register,
@@ -27,7 +31,6 @@ export default function Login() {
 
   const identifierValue = watch('identifier', '')
 
-  // Aplicar máscara de CPF se for numérico
   function handleIdentifierChange(value: string) {
     const onlyDigits = value.replace(/\D/g, '')
     if (onlyDigits.length <= 11 && /^\d+$/.test(value.replace(/[.\-]/g, ''))) {
@@ -44,7 +47,28 @@ export default function Login() {
       setAuthData(result.user, result.profile)
       navigate('/')
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Erro ao fazer login')
+      const msg = err instanceof Error ? err.message : 'Erro ao fazer login'
+      setAuthError(msg)
+      // Se erro de credenciais, mostrar opção de recuperar senha
+      if (msg.includes('incorretos') || msg.includes('inválid')) {
+        setShowReset(true)
+      }
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!resetEmail || !resetEmail.includes('@')) {
+      setResetError('Informe um email válido')
+      return
+    }
+    try {
+      setResetStatus('loading')
+      setResetError(null)
+      await resetPassword(resetEmail)
+      setResetStatus('sent')
+    } catch (err) {
+      setResetStatus('error')
+      setResetError(err instanceof Error ? err.message : 'Erro ao enviar email')
     }
   }
 
@@ -94,6 +118,53 @@ export default function Login() {
               className="w-full mt-2"
             />
           </form>
+
+          {/* Esqueceu a senha */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setShowReset(!showReset)}
+              className="text-xs sm:text-sm text-primary hover:underline"
+            >
+              Esqueceu sua senha?
+            </button>
+          </div>
+
+          {/* Formulário de recuperação */}
+          {showReset && (
+            <div className="mt-4 pt-4 border-t border-border">
+              {resetStatus === 'sent' ? (
+                <div className="bg-success/10 border border-success/30 text-success rounded-lg p-3 text-sm text-center">
+                  ✅ Email enviado! Verifique sua caixa de entrada para redefinir a senha.
+                </div>
+              ) : (
+                <>
+                  <p className="text-muted text-xs sm:text-sm mb-3">
+                    Informe seu email cadastrado para receber o link de recuperação:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      className="flex-1 px-3 py-2 rounded-lg text-sm text-foreground bg-surface border border-border placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                    />
+                    <Button
+                      type="button"
+                      title="Enviar"
+                      loading={resetStatus === 'loading'}
+                      onClick={handleResetPassword}
+                      className="text-xs px-3"
+                    />
+                  </div>
+                  {resetError && (
+                    <p className="text-xs text-danger mt-2">{resetError}</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </Card>
 
         <p className="text-center text-muted text-sm mt-4">

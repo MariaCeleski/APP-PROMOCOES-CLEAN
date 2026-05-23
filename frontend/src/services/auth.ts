@@ -88,3 +88,13 @@ export function getSession(): { token: string | null; user: { id: string; email:
   const user = userRaw ? JSON.parse(userRaw) : null
   return { token, user }
 }
+
+// ─── resetPassword ───────────────────────────────────────────────────────────
+
+export async function resetPassword(email: string): Promise<void> {
+  try {
+    await api.post('/api/auth/reset-password', { email })
+  } catch (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}

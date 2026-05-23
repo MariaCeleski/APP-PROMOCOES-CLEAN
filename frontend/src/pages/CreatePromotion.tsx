@@ -12,7 +12,8 @@ import { uploadImage } from '@/services/storage'
 import imageCompression from 'browser-image-compression'
 import { categoriesForForm } from '@/constants/categories'
 import { formatCEP, cleanCEP } from '@/utils/formatters'
-import { searchByCEP, geocodeAddress, reverseGeocode, getCurrentLocation } from '@/services/geolocation'
+import { searchByCEP, geocodeAddress } from '@/services/geolocation'
+import LocationPicker from '@/components/features/LocationPicker'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -47,13 +48,14 @@ export default function CreatePromotion() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [loadingPromotion, setLoadingPromotion] = useState(isEditMode)
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const numberInputRef = useRef<HTMLInputElement>(null)
 
   const {
     register,
@@ -82,17 +84,25 @@ export default function CreatePromotion() {
   // ─── Buscar endereço quando CEP mudar ──────────────────────────────────────
 
   useEffect(() => {
-    if (!cepValue || cepValue.length < 8) return
+    if (!cepValue || cepValue.length < 8) {
+      setCepStatus('idle')
+      return
+    }
 
     async function fetchAddressByCEP() {
       try {
+        setCepStatus('loading')
         setGeoError(null)
         const geo = await searchByCEP(cepValue || '')
         setValue('address', geo.address || '')
         setValue('city', geo.city || '')
         setValue('state', geo.state || '')
+        setCepStatus('success')
+
+        // Foco no campo número após preencher endereço
+        setTimeout(() => numberInputRef.current?.focus(), 100)
         
-        // Geocodificar para obter coordenadas
+        // Geocodificar para obter coordenadas (silencioso)
         try {
           const coords = await geocodeAddress(geo.address, geo.city, geo.state)
           setCoordinates(coords)
@@ -100,7 +110,8 @@ export default function CreatePromotion() {
           // Silencioso se não conseguir geocodificar
         }
       } catch (err) {
-        setGeoError(err instanceof Error ? err.message : 'Erro ao buscar CEP')
+        setCepStatus('error')
+        setGeoError(err instanceof Error ? err.message : 'CEP não encontrado')
       }
     }
 
@@ -161,27 +172,6 @@ export default function CreatePromotion() {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
     setSubmitError(null)
-  }
-
-  // ─── Geolocalização ───────────────────────────────────────────────────────
-
-  async function handleUseLocation() {
-    setGeoLoading(true)
-    setGeoError(null)
-
-    try {
-      const coords = await getCurrentLocation()
-      setCoordinates(coords)
-      const geo = await reverseGeocode(coords.latitude, coords.longitude)
-      setValue('address', geo.address)
-      setValue('city', geo.city)
-      setValue('state', geo.state.slice(0, 2))
-      setValue('cep', geo.cep)
-    } catch (err) {
-      setGeoError(err instanceof Error ? err.message : 'Erro ao obter localização')
-    } finally {
-      setGeoLoading(false)
-    }
   }
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -406,67 +396,97 @@ export default function CreatePromotion() {
 
         {/* ── Localização ── */}
         <Card className="p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-foreground font-semibold text-sm">📍 Localização</h2>
-            <Button
-              type="button"
-              title={geoLoading ? 'Obtendo...' : 'Usar minha localização'}
-              variant="secondary"
-              loading={geoLoading}
-              onClick={handleUseLocation}
-              className="text-xs py-1.5 px-3"
-            />
-          </div>
+          <h2 className="text-foreground font-semibold text-sm">📍 Localização</h2>
 
           {geoError && (
             <p className="text-xs text-danger">{geoError}</p>
           )}
 
-          <Input
-            label="Endereço"
-            placeholder="Rua, número"
-            error={errors.address?.message}
-            {...register('address')}
-            onChange={(v) => setValue('address', capitalize(v))}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-foreground">CEP</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="00000-000"
+                  value={cepValue ? formatCEP(cepValue) : ''}
+                  onChange={(e) => setValue('cep', cleanCEP(e.target.value))}
+                  inputMode="numeric"
+                  maxLength={9}
+                  className={[
+                    'w-full px-3 pr-9 py-2.5 rounded-lg text-sm text-foreground',
+                    'bg-surface border transition-colors',
+                    'placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background',
+                    cepStatus === 'success' ? 'border-success' :
+                    cepStatus === 'error' ? 'border-danger' :
+                    'border-border hover:border-slate-400',
+                  ].join(' ')}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {cepStatus === 'loading' && (
+                    <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                  )}
+                  {cepStatus === 'success' && (
+                    <span className="text-success text-sm">✓</span>
+                  )}
+                  {cepStatus === 'error' && (
+                    <span className="text-danger text-sm">✕</span>
+                  )}
+                </span>
+              </div>
+              {cepStatus === 'error' && geoError && (
+                <p className="text-xs text-danger">{geoError}</p>
+              )}
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Cidade"
-              placeholder="São Paulo"
-              error={errors.city?.message}
-              {...register('city')}
-              onChange={(v) => setValue('city', v)}
-            />
-            <Input
-              label="Estado (UF)"
-              placeholder="SP"
-              maxLength={2}
-              error={errors.state?.message}
-              {...register('state')}
-              onChange={(v) => setValue('state', v.toUpperCase().slice(0, 2))}
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-foreground">Número</label>
+              <input
+                ref={numberInputRef}
+                type="text"
+                placeholder="123"
+                inputMode="numeric"
+                onBlur={(e) => {
+                  const num = e.target.value.trim()
+                  if (!num) return
+                  const currentAddress = watch('address') || ''
+                  const addressWithoutNumber = currentAddress.replace(/,\s*\d+$/, '').trim()
+                  setValue('address', addressWithoutNumber ? `${addressWithoutNumber}, ${num}` : num)
+                }}
+                className="w-full px-3 py-2.5 rounded-lg text-sm text-foreground bg-surface border border-border transition-colors placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+              />
+            </div>
           </div>
 
-          <Input
-            label="CEP"
-            placeholder="00000-000"
-            value={cepValue ? formatCEP(cepValue) : ''}
-            onChange={(v) => setValue('cep', cleanCEP(v))}
-            error={errors.cep?.message}
-            inputMode="numeric"
-            maxLength={9}
+          {/* Endereço completo (resultado do CEP) */}
+          {(watch('address') || watch('city')) && (
+            <div className="bg-background/50 rounded-lg px-3 py-2 border border-border/50">
+              <p className="text-foreground text-sm">
+                {[watch('address'), watch('city'), watch('state')].filter(Boolean).join(', ')}
+              </p>
+            </div>
+          )}
+
+          {/* Mini-mapa mostra localização do endereço */}
+          <LocationPicker
+            latitude={coordinates?.latitude ?? null}
+            longitude={coordinates?.longitude ?? null}
           />
 
           {/* Validade */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-foreground">Validade da promoção</label>
+            <label className="text-sm font-medium text-foreground">Validade da promoção <span className="text-danger">*</span></label>
             <input
               type="date"
               {...register('expiresAt')}
-              className="w-full px-3 py-2.5 rounded-lg text-sm text-foreground bg-surface border border-border transition-colors placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+              className={[
+                'w-full px-3 py-2.5 rounded-lg text-sm text-foreground bg-surface border transition-colors placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background',
+                errors.expiresAt ? 'border-danger' : 'border-border hover:border-slate-400',
+              ].join(' ')}
             />
-            <p className="text-[10px] text-muted">Opcional — deixe vazio se não tem data de expiração</p>
+            {errors.expiresAt && (
+              <p className="text-xs text-danger">{errors.expiresAt.message}</p>
+            )}
           </div>
         </Card>
 
