@@ -28,12 +28,16 @@ router.get('/map', async (_req: Request, res: Response, next: NextFunction) => {
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { category, city } = req.query
+    const { category, city, limit, offset } = req.query
+
+    const pageLimit = Math.min(Number(limit) || 20, 50)
+    const pageOffset = Number(offset) || 0
 
     let query = supabaseAdmin
       .from('promotions')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
+      .range(pageOffset, pageOffset + pageLimit - 1)
 
     if (category && category !== 'Todos') {
       query = query.ilike('category', String(category))
@@ -43,11 +47,11 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       query = query.ilike('city', `%${String(city)}%`)
     }
 
-    const { data, error } = await query
+    const { data, error, count } = await query
 
     if (error) throw error
 
-    res.json({ promotions: data })
+    res.json({ promotions: data, total: count || 0, limit: pageLimit, offset: pageOffset })
   } catch (err) {
     next(err)
   }
@@ -96,7 +100,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response, next: NextF
       title, price, store, category,
       image_url, image_urls,
       address, city, state, cep,
-      latitude, longitude,
+      latitude, longitude, expires_at,
     } = req.body
 
     if (!title || !store || !category) {
@@ -119,6 +123,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response, next: NextF
         cep: cep || null,
         latitude: latitude || null,
         longitude: longitude || null,
+        expires_at: expires_at || null,
         user_id: req.user!.id,
       })
       .select()
@@ -159,7 +164,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response, next: Nex
       title, price, store, category,
       image_url, image_urls,
       address, city, state, cep,
-      latitude, longitude,
+      latitude, longitude, expires_at,
     } = req.body
 
     const { data, error } = await supabaseAdmin
@@ -177,6 +182,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response, next: Nex
         ...(cep !== undefined && { cep }),
         ...(latitude !== undefined && { latitude }),
         ...(longitude !== undefined && { longitude }),
+        ...(expires_at !== undefined && { expires_at }),
       })
       .eq('id', id)
       .select()

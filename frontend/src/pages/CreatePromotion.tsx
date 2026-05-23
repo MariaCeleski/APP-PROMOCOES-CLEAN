@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card'
 import { promotionSchema, type PromotionFormData } from '@/utils/validators'
 import { createPromotion, getPromotion, updatePromotion } from '@/services/promotions'
 import { uploadImage } from '@/services/storage'
+import imageCompression from 'browser-image-compression'
 import { categoriesForForm } from '@/constants/categories'
 import { formatCEP, cleanCEP } from '@/utils/formatters'
 import { searchByCEP, geocodeAddress, reverseGeocode, getCurrentLocation } from '@/services/geolocation'
@@ -123,6 +124,7 @@ export default function CreatePromotion() {
           city: promotion.city || '',
           state: promotion.state || '',
           cep: promotion.cep || '',
+          expiresAt: promotion.expires_at ? promotion.expires_at.split('T')[0] : '',
         })
         if (promotion.latitude && promotion.longitude) {
           setCoordinates({ latitude: promotion.latitude, longitude: promotion.longitude })
@@ -193,7 +195,13 @@ export default function CreatePromotion() {
       if (imageFile) {
         setUploadingImage(true)
         try {
-          imageUrl = await uploadImage(imageFile)
+          // Comprimir imagem antes do upload
+          const compressed = await imageCompression(imageFile, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+          })
+          imageUrl = await uploadImage(compressed)
         } catch {
           setSubmitError('Erro ao fazer upload da imagem. Tente novamente.')
           setUploadingImage(false)
@@ -214,6 +222,7 @@ export default function CreatePromotion() {
         cep: data.cep ? cleanCEP(data.cep) : undefined,
         latitude: coordinates?.latitude || undefined,
         longitude: coordinates?.longitude || undefined,
+        expires_at: data.expiresAt || null,
       }
 
       if (isEditMode && id) {
@@ -448,6 +457,17 @@ export default function CreatePromotion() {
             inputMode="numeric"
             maxLength={9}
           />
+
+          {/* Validade */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-foreground">Validade da promoção</label>
+            <input
+              type="date"
+              {...register('expiresAt')}
+              className="w-full px-3 py-2.5 rounded-lg text-sm text-foreground bg-surface border border-border transition-colors placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+            />
+            <p className="text-[10px] text-muted">Opcional — deixe vazio se não tem data de expiração</p>
+          </div>
         </Card>
 
         {/* ── Botão salvar ── */}

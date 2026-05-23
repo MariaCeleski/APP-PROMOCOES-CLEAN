@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, capitalize } from '@/utils/formatters'
 import type { Promotion } from '@/types/promotion'
 
 const FALLBACK_IMAGE = 'https://placehold.co/1200x500/1E293B/94A3B8?text=App+Promoções'
@@ -48,11 +48,11 @@ export default function HeroBanner({ promotion, loading = false }: HeroBannerPro
           🔥 Destaque
         </span>
         <h2 className="text-foreground font-bold text-lg sm:text-xl md:text-2xl mt-1 line-clamp-2 leading-tight">
-          {promotion.title}
+          {capitalize(promotion.title)}
         </h2>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-3 gap-2">
           <div>
-            <p className="text-muted text-xs">{promotion.store}</p>
+            <p className="text-muted text-xs">{capitalize(promotion.store)}</p>
             <p className="text-accent font-bold text-base sm:text-lg">
               {promotion.price ? formatCurrency(promotion.price) : 'Consulte preços'}
             </p>

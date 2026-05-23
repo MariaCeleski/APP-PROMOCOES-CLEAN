@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button'
 import { getPromotion, deletePromotion } from '@/services/promotions'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, capitalize } from '@/utils/formatters'
 import type { Promotion } from '@/types/promotion'
 
 const FALLBACK = 'https://placehold.co/800x500/1E293B/94A3B8?text=Sem+imagem'
@@ -160,12 +160,19 @@ export default function PromotionDetail() {
               {promotion.category}
             </span>
             <h1 className="text-foreground font-bold text-lg sm:text-xl md:text-2xl mt-1.5 sm:mt-2 leading-tight">
-              {promotion.title}
+              {capitalize(promotion.title)}
             </h1>
             <p className="text-accent font-bold text-xl sm:text-2xl md:text-3xl mt-1">
               {promotion.price ? formatCurrency(promotion.price) : 'Consulte preços'}
             </p>
-            <p className="text-muted text-xs sm:text-sm mt-1">{promotion.store}</p>
+            <p className="text-muted text-xs sm:text-sm mt-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/store/${promotion.user_id}`) }}
+                className="hover:text-primary transition-colors underline decoration-dotted"
+              >
+                {capitalize(promotion.store)}
+              </button>
+            </p>
           </div>
 
           {/* Botão favoritar */}
@@ -181,6 +188,46 @@ export default function PromotionDetail() {
             </button>
           )}
         </div>
+
+        {/* Compartilhar */}
+        {(() => {
+          const shareText = `Confira essa promoção: ${promotion.title}${promotion.price ? ` por ${formatCurrency(promotion.price)}` : ''} em ${promotion.store}`
+          const shareUrl = window.location.href
+          const encoded = encodeURIComponent(shareText + ' ' + shareUrl)
+          return (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => window.open(`https://wa.me/?text=${encoded}`, '_blank')}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] hover:bg-[#25D366]/20 transition-colors text-xs sm:text-sm font-medium"
+              >
+                💬 WhatsApp
+              </button>
+              <button
+                onClick={() => window.open(`https://telegram.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank')}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#0088cc]/10 border border-[#0088cc]/30 text-[#0088cc] hover:bg-[#0088cc]/20 transition-colors text-xs sm:text-sm font-medium"
+              >
+                ✈️ Telegram
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(shareText + ' ' + shareUrl)
+                  alert('Link copiado!')
+                }}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-surface border border-border text-muted hover:text-foreground hover:border-primary/50 transition-colors text-xs sm:text-sm font-medium"
+              >
+                🔗 Copiar link
+              </button>
+              {navigator.share && (
+                <button
+                  onClick={() => navigator.share({ title: promotion.title, text: shareText, url: shareUrl })}
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-colors text-xs sm:text-sm font-medium"
+                >
+                  📤 Mais opções
+                </button>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Endereço */}
         {(promotion.address || promotion.city) && (

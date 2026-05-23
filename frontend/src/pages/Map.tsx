@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { getPromotionsWithLocation } from '@/services/promotions'
-import { formatCurrency } from '@/utils/formatters'
+import { formatCurrency, capitalize } from '@/utils/formatters'
 import type { Promotion } from '@/types/promotion'
 
 // Fix ícone padrão do Leaflet com Vite
@@ -83,9 +83,9 @@ export default function Map() {
               <Marker key={p.id} position={[p.latitude!, p.longitude!]}>
                 <Popup>
                   <div className="min-w-[180px]">
-                    <p className="font-semibold text-sm text-gray-900">{p.title}</p>
+                    <p className="font-semibold text-sm text-gray-900">{capitalize(p.title)}</p>
                     <p className="text-orange-600 font-bold">{p.price ? formatCurrency(p.price) : 'Consulte'}</p>
-                    <p className="text-gray-600 text-xs">{p.store}</p>
+                    <p className="text-gray-600 text-xs">{capitalize(p.store)}</p>
                     <p className="text-gray-500 text-xs">{p.category}</p>
                     <button
                       onClick={() => navigate(`/promotions/${p.id}`)}

@@ -12,7 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
 // Client padrão — respeita RLS
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: {
-    transport: ws,
+    transport: ws as unknown as Parameters<typeof createClient>[2] extends { realtime?: { transport?: infer T } } ? T : never,
   },
 })
 
@@ -23,6 +23,6 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     persistSession: false,
   },
   realtime: {
-    transport: ws,
+    transport: ws as unknown as Parameters<typeof createClient>[2] extends { realtime?: { transport?: infer T } } ? T : never,
   },
 })
